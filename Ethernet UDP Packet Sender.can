@@ -1,0 +1,49 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Ethernet_UDP_Packet_Send
+//  Sends an Ethernet packet supplied in the outgoing ethernet global buffer on the Ethernet to the indicated receiver.
+//Arguments: 
+//  size [byte]     - the number of bytes in the buffer to send in the packet
+//Returns: 1 - Pass , -1 - Fail
+//Author: Elmotasem Mahmoud
+
+char  Ethernet_UDP_Packet_Send (byte size)
+{
+  byte i = 0;
+  byte Int_TX_BuFF[256];   // internal TX Buffer
+  
+  for (i=0; i<size; i++)   // Moving Data from external function buffer to the Internal TX buffer
+  {
+    Int_TX_BuFF[i] = TX_BuFF[i];
+  }
+
+    // Build Message payload
+    // Create a UDP Handler
+    Handler = EthInitPacket("udp");
+    if (EthGetLastError() == 0)
+    {
+      // Define Ethernet Packet Data
+      EthSetTokenInt64( Handler, "eth", "source", Source_MAC );
+      EthSetTokenInt64( Handler, "eth", "destination", 0xFFFFFFFFFFFFLL );
+      EthSetTokenInt( Handler, "ipv4", "source", SRC_IP );
+      EthSetTokenInt( Handler, "ipv4", "destination", DEST_IP );
+      EthSetTokenInt( Handler, "udp", "source", PORT );
+      EthSetTokenInt( Handler, "udp", "destination", PORT );
+      // Add Tx payload to Ethernet frame Payload
+      EthResizeToken( Handler, "udp", "data", (size+4)*8 );
+      EthSetTokenData( Handler, "udp", "data", (size+4), Int_TX_BuFF );
+      // Complete and send packet
+      EthCompletePacket( Handler );
+      EthOutputPacket( Handler );
+      // release packet
+      EthReleasePacket( Handler );
+      return (1);
+    }
+    else
+    {
+      EthGetLastErrorText( elCount(error), error );
+      return (-1);
+      write("Error: %s", error );
+    }
+  
+  return (-1);
+}
