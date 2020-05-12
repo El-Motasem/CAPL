@@ -1,0 +1,43 @@
+//Event Handler - Any Ethernet packets received
+//  Handles all incoming Ethernet packets - filters for XCP ports as example
+//Author: Elmotasem Mahmoud
+
+on ethernetPacket*
+{
+  char i = 0;
+  char REC[500];
+  char arr[10];
+  int YY=0;
+  IP_Tester_Last_nip = SRC_IP;
+  if((this.byte(28)==0x08) && (this.dir==RX))
+  {
+    // This indicates 8 bytes provided the packet is a UDP packet with an XCP frame - nothing is done here
+  }
+ 
+  // Port 51010 for XCP(this.byte(20)==0xC7) && (this.byte(21)==0x42) // Destination IP byte(19) ends with 100
+  if((this.byte(20)==0xC7) && (this.byte(21)==0x42) &&(this.dir==RX) && (this.byte(19)==IP_Tester_Last_nip)) 
+  {
+    for (i = 0; i< this.byte(28); i++)
+    {
+      // Dump incoming data from the (XCP) frame (size determined in byte 28) into the global Rx buffer.
+      rxBuffer[i] = this.byte(i+32);
+    }
+    Payload_size = this.byte(28);                                // Records data size
+   
+      REC[0]='\0';              // initialize the string to report bytes
+      for (YY =0; (YY < Payload_size && YY<64) ; YY++ )
+      {
+        // Build string of received frame for report
+        ltoa(rxBuffer[YY],arr,16);
+        strncat(REC, " - 0x", 500);
+        strncat(REC, arr, 500);
+      }
+      // Report received frame
+      snprintf(Display_buffer,elcount(Display_buffer),"%d Recieved Bytes: %s",YY,REC);
+      testStep(" ","%s",Display_buffer);
+    
+    @sysvar::Eth_Tx_Rx::lOCK = 1;         // Set flag indicating receieved data available in incomming buffer
+  }
+ 
+}
+
